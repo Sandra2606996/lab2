@@ -168,11 +168,11 @@ begin
   graphics_lenght <= conv_std_logic_vector(MEM_SIZE*8*8, GRAPH_MEM_ADDR_WIDTH);
   
   -- removed to inputs pin
-  direct_mode <= '1';
-  display_mode     <= "10";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
+  direct_mode <= '0';
+  display_mode     <= "01";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
   
   font_size        <= x"1";
-  show_frame       <= '1';
+  show_frame       <= '0';
   foreground_color <= x"FFFFFF";
   background_color <= x"000000";
   frame_color      <= x"FF0000";
@@ -255,6 +255,61 @@ begin
   --char_address
   --char_value
   --char_we
+  sRGB <= x"A0A000" when dir_pixel_column < 1*640/8 else
+          x"BC21B0" when dir_pixel_column < 2*640/8 else
+			 x"AAABBB" when dir_pixel_column < 3*640/8 else
+			 x"FFB2C2" when dir_pixel_column < 4*640/8 else
+			 x"FAFAFA" when dir_pixel_column < 5*640/8 else
+			 x"CCBBAA" when dir_pixel_column < 6*640/8 else
+			 x"FFFFFF" when dir_pixel_column < 7*640/8 else
+			 x"2BAFF1";
+			 
+ --TEXT MODE
+  char_we <= '1'; --dozvola
+  
+  char_value <= "01" & x"3" when char_address="00000000000000" else  --S
+                "00" & x"1" when char_address="00000000000001" else  --A
+					 "00" & x"E" when char_address="00000000000010" else  --N
+					 "00" & x"4" when char_address="00000000000011" else  --D
+					 "01" & x"2" when char_address="00000000000100" else  --R
+					 "00" & x"1" when char_address="00000000000101";      --A
+					 
+	char_address<= "00000000000000" when dir_pixel_row<8 else
+						"00000000000001" when dir_pixel_row<16 else
+						"00000000000010" when dir_pixel_row<24 else
+						"00000000000011" when dir_pixel_row<32 else
+						"00000000000100" when dir_pixel_row<40 else
+						"00000000000101" when dir_pixel_row<48;
+	
+	
+		char_addr_next<= char_addr_r +1 when char_we='1' and char_addr_r < 4800 else  --velicina karaktera
+	                  x"00000"        when char_we='1' and char_addr_r=4800 else
+							char_addr_r;  
+						
+	
+	--GRAPHICS MODE					
+	pixel_we<='1';  --uvek ima dozvolu
+	
+	pixel_addr_next<= pixel_addr_r +1 when pixel_we='1' and pixel_addr_r < 9600 else    --velicina ekrana
+	                  x"00000"        when pixel_we='1' and pixel_addr_r=9600 else
+							pixel_addr_r;
+	
+	pixel_address<=pixel_addr_r;
+	
+	
+	pixel_value<=x"FFFFFFFF" when pixel_address = 5 + start_pointer_r else     --dodajemo trenutno gde se nalazi
+					 x"FFFFFFFF" when pixel_address = 25 + start_pointer_r else  
+					 x"FFFFFFFF" when pixel_address = 45 + start_pointer_r else
+					 x"FFFFFFFF" when pixel_address = 65 + start_pointer_r else
+					 x"FFFFFFFF" when pixel_address = 85 + start_pointer_r else
+					 x"FFFFFFFF" when pixel_address = 105 + start_pointer_r else
+					 x"FFFFFFFF" when pixel_address = 125 + start_pointer_r else
+					 x"00000000";
+					 
+	start_pointer_next <= start_pointer_r + 1 when pixel_we = '1' and start_pointer_r < 9600 else  --pomera slova
+	                      x"00000"        when pixel_we='1' and pixel_addr_r = 9600 else        --vraca na pocetak ako je stiglo do kraja
+							    start_pointer_r;  
+                
   
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
   --pixel_address
